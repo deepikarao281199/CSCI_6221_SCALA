@@ -1,1 +1,1 @@
-# csci_6221_Kotlin
+# csci_6221_Scala
