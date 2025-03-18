@@ -1,0 +1,56 @@
+package services
+
+import javax.inject.Inject
+import play.api.libs.ws.{WSClient}
+import play.api.Configuration
+import models.{WeatherData, WeatherRecord}
+import models.JsonFormatters._
+import repositories.WeatherRepository
+import play.api.libs.json.JsError
+import scala.concurrent.{ExecutionContext, Future}
+
+class WeatherService @Inject()(
+  ws: WSClient,
+  config: Configuration,
+  weatherRepository: WeatherRepository
+)(implicit ec: ExecutionContext) {
+
+  private val apiKey = config.get[String]("weather.api.key")
+  private val apiUrl = config.get[String]("weather.api.url")
+
+  def getCurrentWeather(city: String): Future[Either[String, WeatherData]] = {
+    val url = s"$apiUrl/weather"
+
+    ws.url(url)
+      .addQueryStringParameters(
+        "q" -> city,
+        "appid" -> apiKey,
+        "units" -> "metric"
+      )
+      .get()
+      .flatMap { response =>
+        response.status match {
+          case 200 =>
+            response.json.validate[WeatherData].fold(
+              errors => Future.successful(Left(s"Failed to parse weather data: ${JsError.toJson(errors)}")),
+              weatherData => {
+                // Store the weather data in the database
+                val weatherRecord = WeatherRecord.fromWeatherData(weatherData)
+                weatherRepository.create(weatherRecord).map(_ => Right(weatherData))
+              }
+            )
+          case 404 =>
+            Future.successful(Left(s"City '$city' not found"))
+          case status =>
+            Future.successful(Left(s"Weather API error: ${response.status} ${response.statusText}"))
+        }
+      }
+      .recover {
+        case e: Exception => Left(s"Failed to get weather data: ${e.getMessage}")
+      }
+  }
+
+  def getHistoricalData(city: String, limit: Int = 10): Future[Seq[WeatherRecord]] = {
+    weatherRepository.list(city, limit)
+  }
+}

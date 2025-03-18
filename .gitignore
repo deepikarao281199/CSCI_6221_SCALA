@@ -1,0 +1,43 @@
+logs
+target
+/.bsp
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/RUNNING_PID
+# Logs
+logs
+*.log
+
+# Scala-specific
+*.class
+*.log
+
+# SBT-specific
+.cache/
+.history/
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Play Framework
+RUNNING_PID
+.sbtserver/
+
+# IDE-specific
+.idea/
+.idea_modules/
+.classpath
+.project
+.settings/
+.metals/
+.bloop/
+
+# OS-specific
+.DS_Store
