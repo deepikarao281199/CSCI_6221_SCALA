@@ -1,33 +1,15 @@
 # Routes
 # This file defines all application routes (Higher priority routes first)
-# https://www.playframework.com/documentation/latest/ScalaRouting
-# ~~~~
 
-# An example controller showing a sample home page
-GET     /                           controllers.HomeController.index()
+# Home page
+GET     /                           controllers.WeatherController.index()
 
-# Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+# Dashboard
+GET     /dashboard                  controllers.WeatherController.dashboard(city: String ?= "")
 
-
-# Home page_weather_dashboard
-GET     /                           controllers.HomeController.index()
-
-# Weather routes
-GET     /weather                    controllers.WeatherController.index()
-GET     /weather/:city              controllers.WeatherController.getWeather(city: String)
-
-# Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
-
-
-# Weather historical data
-GET     /weather/:city/history        controllers.WeatherController.getHistoricalData(city: String, limit: Int ?= 10)
-
-# Weather routes
-GET     /weather                    controllers.WeatherController.index()
-GET     /weather/:city              controllers.WeatherController.getWeather(city: String)
-GET     /weather/:city/history      controllers.WeatherController.getHistoricalData(city: String, limit: Int ?= 10)
+# API
+GET     /api/weather/:city          controllers.WeatherController.getWeather(city: String)
+GET     /api/weather/:city/history  controllers.WeatherController.getHistoricalData(city: String, limit: Int ?= 10)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

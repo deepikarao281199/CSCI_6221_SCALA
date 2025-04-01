@@ -1,0 +1,9 @@
+@(title: String, message: String)
+
+@main(title) {
+    <div class="alert alert-danger">
+        <h4>@title</h4>
+        <p>@message</p>
+        <a href="@routes.WeatherController.index()" class="btn btn-primary mt-3">Back to Home</a>
+    </div>
+}

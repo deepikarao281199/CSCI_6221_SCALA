@@ -1,0 +1,104 @@
+@(weather: models.WeatherData, historicalData: Seq[models.WeatherRecord])
+
+@import java.time.{Instant, ZoneId}
+@import java.time.format.DateTimeFormatter
+
+@formatTime(timestamp: Long) = @{
+    val instant = Instant.ofEpochSecond(timestamp)
+    val formatter = DateTimeFormatter.ofPattern("HH:mm, dd MMM")
+        .withZone(ZoneId.systemDefault())
+    formatter.format(instant)
+}
+
+@main(s"Weather for ${weather.city}") {
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Current Weather in @weather.city, @weather.country</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 text-center">
+                            @for(condition <- weather.weather.headOption) {
+                                <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png" 
+                                     alt="@condition.description" width="100">
+                                <h5>@condition.main</h5>
+                                <p>@condition.description</p>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <h2>@weather.temperature.current°C</h2>
+                            <p>Feels like: @weather.temperature.feelsLike°C</p>
+                            <p>Min: @weather.temperature.min°C</p>
+                            <p>Max: @weather.temperature.max°C</p>
+                            <p>Humidity: @weather.humidity%</p>
+                            <p>Wind: @weather.wind.speed m/s</p>
+                        </div>
+                    </div>
+                    <div class="text-muted mt-3">
+                        Updated: @formatTime(weather.timestamp)
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4>Historical Data</h4>
+                </div>
+                <div class="card-body">
+                    @if(historicalData.nonEmpty) {
+                        <canvas id="temperatureChart"></canvas>
+                        
+                        <script>
+                            document.addEventListener("DOMContentLoaded", function() {
+                                const ctx = document.getElementById("temperatureChart").getContext("2d");
+                                
+                                const labels = [
+                                    @for(data <- historicalData.sortBy(_.timestamp).reverse.take(7)) {
+                                        "@formatTime(data.timestamp)",
+                                    }
+                                ];
+                                
+                                const temperatures = [
+                                    @for(data <- historicalData.sortBy(_.timestamp).reverse.take(7)) {
+                                        @data.temperature,
+                                    }
+                                ];
+                                
+                                new Chart(ctx, {
+                                    type: "line",
+                                    data: {
+                                        labels: labels,
+                                        datasets: [{
+                                            label: "Temperature (°C)",
+                                            data: temperatures,
+                                            borderColor: "#0dcaf0",
+                                            backgroundColor: "rgba(13, 202, 240, 0.2)",
+                                            tension: 0.3
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        plugins: {
+                                            title: {
+                                                display: true,
+                                                text: "Recent Temperature History"
+                                            }
+                                        }
+                                    }
+                                });
+                            });
+                        </script>
+                    } else {
+                        <div class="alert alert-info">
+                            No historical data available yet. Check back later.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

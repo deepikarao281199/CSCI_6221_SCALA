@@ -4,25 +4,27 @@ import java.sql.Timestamp
 import play.api.libs.json._
 
 case class WeatherRecord(
-  id: Option[Long] = None,
-  city: String,
-  country: String,
-  temperature: Double,
-  minTemp: Double,
-  maxTemp: Double,
-  feelsLike: Double,
-  humidity: Int,
-  pressure: Int,
-  main: String,
-  description: String,
-  icon: String,
-  windSpeed: Double,
-  windDeg: Int,
-  timestamp: Long,
-  createdAt: Option[Timestamp] = None
-)
+                          id: Option[Long] = None,
+                          city: String,
+                          country: String,
+                          temperature: Double,
+                          minTemp: Double,
+                          maxTemp: Double,
+                          feelsLike: Double,
+                          humidity: Int,
+                          pressure: Int,
+                          main: String,
+                          description: String,
+                          icon: String,
+                          windSpeed: Double,
+                          windDeg: Int,
+                          timestamp: Long,
+                          createdAt: Option[Timestamp] = None
+                        )
 
 object WeatherRecord {
+  import models.JsonFormatters._
+
   def fromWeatherData(data: WeatherData): WeatherRecord = {
     WeatherRecord(
       id = None,

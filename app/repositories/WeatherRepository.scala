@@ -1,3 +1,4 @@
+
 package repositories
 
 import javax.inject.{Inject, Singleton}
@@ -9,11 +10,11 @@ import java.sql.Timestamp
 
 @Singleton
 class WeatherRepository @Inject()(
-  protected val dbConfigProvider: DatabaseConfigProvider
-)(implicit ec: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
-  
+                                   protected val dbConfigProvider: DatabaseConfigProvider
+                                 )(implicit ec: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
+
   import profile.api._
-  
+
   class WeatherRecordsTable(tag: Tag) extends Table[WeatherRecord](tag, "weather_records") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def city = column[String]("city")
@@ -31,40 +32,39 @@ class WeatherRepository @Inject()(
     def windDeg = column[Int]("wind_deg")
     def timestamp = column[Long]("timestamp")
     def createdAt = column[Timestamp]("created_at")
-    
+
     def * = (
-      id.?, city, country, temperature, minTemp, maxTemp, feelsLike, 
+      id.?, city, country, temperature, minTemp, maxTemp, feelsLike,
       humidity, pressure, main, description, icon, windSpeed, windDeg,
       timestamp, createdAt.?
     ) <> ((WeatherRecord.apply _).tupled, WeatherRecord.unapply)
   }
-  
+
   val weatherRecords = TableQuery[WeatherRecordsTable]
-  
+
   def create(weatherRecord: WeatherRecord): Future[WeatherRecord] = {
     val query = (weatherRecords returning weatherRecords.map(_.id)
       into ((record, id) => record.copy(id = Some(id)))
-    ) += weatherRecord
-    
+      ) += weatherRecord
+
     db.run(query)
   }
-  
+
   def list(city: String, limit: Int = 10): Future[Seq[WeatherRecord]] = {
     val query = weatherRecords
       .filter(_.city === city)
       .sortBy(_.timestamp.desc)
       .take(limit)
-    
+
     db.run(query.result)
   }
-  
+
   def getLatest(city: String): Future[Option[WeatherRecord]] = {
     val query = weatherRecords
       .filter(_.city === city)
       .sortBy(_.timestamp.desc)
       .take(1)
-    
+
     db.run(query.result.headOption)
   }
 }
-
