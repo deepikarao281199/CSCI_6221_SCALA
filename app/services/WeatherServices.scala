@@ -2,56 +2,66 @@ package services
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
+import play.api.libs.ws._
+import play.api.libs.json._
+import models.JsonFormatters._
 import models.{WeatherData, WeatherRecord, Temperature, Wind, WeatherCondition}
 import repositories.WeatherRepository
 import scala.concurrent.{ExecutionContext, Future}
 import java.time.Instant
 
 @Singleton
-class WeatherServices @Inject()(
+class WeatherServices @Inject()(ws: WSClient)(
                                  config: Configuration,
                                  weatherRepository: WeatherRepository  // Keep the repository for historical data
                                )(implicit ec: ExecutionContext) {
 
-  private val apiKey = config.get[String]("weather.api.key")
+
+    private val apiKey = config.get[String]("weather.api.key")
   private val apiUrl = config.get[String]("weather.api.url")
 
-  // Mock implementation that returns sample data
-  def getCurrentWeather(city: String): Future[Either[String, WeatherData]] = {
-    // Create sample weather data for the requested city
-    val weatherData = WeatherData(
-      city = city,
-      country = "Sample",
-      temperature = Temperature(
-        current = 20.5,
-        min = 17.0,
-        max = 23.0,
-        feelsLike = 21.0
-      ),
-      weather = Seq(
-        WeatherCondition(
-          main = "Clear",
-          description = "clear sky",
-          icon = "01d"
+    def getCurrentWeather(city: String): Future[Either[String, WeatherData]] = {
+      val request = ws.url(apiUrl)
+        .withQueryStringParameters(
+          "q" -> city,
+          "appid" -> apiKey,
+          "units" -> "metric"
         )
-      ),
-      wind = Wind(
-        speed = 5.1,
-        degrees = 230
-      ),
-      humidity = 65,
-      pressure = 1012,
-      timestamp = Instant.now().getEpochSecond
-    )
 
-    // Store mock data in repository for historical tracking
-    val weatherRecord = WeatherRecord.fromWeatherData(weatherData)
-    weatherRepository.create(weatherRecord).map(_ => Right(weatherData))
-      .recover { case e: Exception =>
-        Right(weatherData) // Still return data even if DB storage fails
+      request.get().flatMap { response =>
+        if (response.status == 200) {
+          val json = response.json
+          // Extract data from JSON and convert to your model
+          val weatherData = WeatherData(
+            city = (json \ "name").as[String],
+            country = (json \ "sys" \ "country").as[String],
+            temperature = Temperature(
+              current = (json \ "main" \ "temp").as[Double],
+              min = (json \ "main" \ "temp_min").as[Double],
+              max = (json \ "main" \ "temp_max").as[Double],
+              feelsLike = (json \ "main" \ "feels_like").as[Double]
+            ),
+            weather = (json \ "weather").as[Seq[WeatherCondition]],
+            wind = Wind(
+              speed = (json \ "wind" \ "speed").as[Double],
+              degrees = (json \ "wind" \ "deg").as[Int]
+            ),
+            humidity = (json \ "main" \ "humidity").as[Int],
+            pressure = (json \ "main" \ "pressure").as[Int],
+            timestamp = (json \ "dt").as[Long]
+          )
+
+          // Optionally store to DB
+          val weatherRecord = WeatherRecord.fromWeatherData(weatherData)
+          weatherRepository.create(weatherRecord).map(_ => Right(weatherData))
+
+        } else {
+          Future.successful(Left(s"Failed to fetch weather: ${response.statusText}"))
+        }
+      } recover {
+        case ex: Exception => Left(s"API call error: ${ex.getMessage}")
       }
-  }
-
+    }
   def getHistoricalData(city: String, limit: Int = 10): Future[Seq[WeatherRecord]] = {
     // Try to get real historical data from the repository
     weatherRepository.list(city, limit)

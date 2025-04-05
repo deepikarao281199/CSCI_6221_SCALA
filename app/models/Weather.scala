@@ -1,5 +1,7 @@
 package models
 
+import play.api.libs.json.{Format, Json}
+
 // Models for weather data from API
 case class WeatherData(
                         city: String,
