@@ -1,9 +1,20 @@
 @(title: String, message: String)
 
 @main(title) {
-    <div class="alert alert-danger">
-        <h4>@title</h4>
-        <p>@message</p>
-        <a href="@routes.WeatherController.index()" class="btn btn-primary mt-3">Back to Home</a>
+<div class="row justify-content-center my-5">
+    <div class="col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>@title</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">@message</p>
+                <hr>
+                <a href="@routes.WeatherController.index()" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Return to Home
+                </a>
+            </div>
+        </div>
     </div>
+</div>
 }

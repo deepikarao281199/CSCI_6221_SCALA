@@ -9,9 +9,10 @@ case class WeatherData(
                         wind: Wind,
                         humidity: Int,
                         pressure: Int,
-                        timestamp: Long
-                      )
+                        timestamp: Long,
 
+
+                      )
 case class Temperature(
                         current: Double,
                         min: Double,

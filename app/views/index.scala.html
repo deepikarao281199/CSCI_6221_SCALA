@@ -1,36 +1,41 @@
 @()
 
-@main("Weather Dashboard") {
-<h1>Weather Dashboard</h1>
-<p>Please visit <a href="/weather">the Weather Dashboard</a> to check current and historical weather data.</p>
-}@()
-
 @main("Home") {
-<div class="text-center my-5">
-    <h1>Weather Dashboard</h1>
-    <p class="lead">Check current weather conditions for any city</p>
+<div class="row justify-content-center my-5">
+    <div class="col-md-8 text-center">
+        <h1 class="display-4 mb-4">
+            <i class="fas fa-cloud-sun text-primary me-3"></i>Weather Dashboard
+        </h1>
+        <p class="lead mb-5">Get real-time weather information for any city around the world.</p>
 
-    <div class="row justify-content-center mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <form action="@routes.WeatherController.dashboard()" method="GET">
-                        <div class="input-group input-group-lg">
-                            <input type="text" class="form-control" placeholder="Enter city name" name="city" required>
-                            <button class="btn btn-primary" type="submit">Get Weather</button>
-                        </div>
-                    </form>
-                </div>
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <form action="@routes.WeatherController.dashboard()" method="GET">
+                    <div class="input-group input-group-lg search-container mx-auto" style="max-width: 600px;">
+                        <input type="text" class="form-control" placeholder="Enter city name..." name="city" required>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search me-2"></i> Get Weather
+                        </button>
+                    </div>
+                </form>
             </div>
+        </div>
 
-            <div class="mt-4">
-                <h5>Popular Cities:</h5>
-                <div class="d-flex justify-content-center flex-wrap gap-2 mt-3">
-                    <a href="@routes.WeatherController.dashboard("London")" class="btn btn-outline-primary">London</a>
-                    <a href="@routes.WeatherController.dashboard("New York")" class="btn btn-outline-primary">New York</a>
-                    <a href="@routes.WeatherController.dashboard("Tokyo")" class="btn btn-outline-primary">Tokyo</a>
-                    <a href="@routes.WeatherController.dashboard("Sydney")" class="btn btn-outline-primary">Sydney</a>
-                </div>
+        <div class="mt-5">
+            <h5 class="mb-3">Popular Cities:</h5>
+            <div class="d-flex justify-content-center flex-wrap">
+                <a href="@routes.WeatherController.dashboard("London")" class="city-btn m-2">
+                <i class="fas fa-map-marker-alt me-2"></i>London
+                </a>
+                <a href="@routes.WeatherController.dashboard("New York")" class="city-btn m-2">
+                <i class="fas fa-map-marker-alt me-2"></i>New York
+                </a>
+                <a href="@routes.WeatherController.dashboard("Tokyo")" class="city-btn m-2">
+                <i class="fas fa-map-marker-alt me-2"></i>Tokyo
+                </a>
+                <a href="@routes.WeatherController.dashboard("Sydney")" class="city-btn m-2">
+                <i class="fas fa-map-marker-alt me-2"></i>Sydney
+                </a>
             </div>
         </div>
     </div>

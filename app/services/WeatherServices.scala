@@ -2,6 +2,8 @@ package services
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
+import play.api.libs.ws._
+import play.api.libs.json._
 import models.{WeatherData, WeatherRecord, Temperature, Wind, WeatherCondition}
 import repositories.WeatherRepository
 import scala.concurrent.{ExecutionContext, Future}
@@ -9,55 +11,180 @@ import java.time.Instant
 
 @Singleton
 class WeatherServices @Inject()(
+                                 ws: WSClient,
                                  config: Configuration,
-                                 weatherRepository: WeatherRepository  // Keep the repository for historical data
-                               )(implicit ec: ExecutionContext) {
+                                 weatherRepository: WeatherRepository
+                               )(implicit ec: ExecutionContext)  {
 
   private val apiKey = config.get[String]("weather.api.key")
   private val apiUrl = config.get[String]("weather.api.url")
 
-  // Mock implementation that returns sample data
   def getCurrentWeather(city: String): Future[Either[String, WeatherData]] = {
-    // Create sample weather data for the requested city
-    val weatherData = WeatherData(
-      city = city,
-      country = "Sample",
-      temperature = Temperature(
-        current = 20.5,
-        min = 17.0,
-        max = 23.0,
-        feelsLike = 21.0
-      ),
-      weather = Seq(
-        WeatherCondition(
-          main = "Clear",
-          description = "clear sky",
-          icon = "01d"
-        )
-      ),
-      wind = Wind(
-        speed = 5.1,
-        degrees = 230
-      ),
-      humidity = 65,
-      pressure = 1012,
-      timestamp = Instant.now().getEpochSecond
-    )
+    val url = s"$apiUrl/weather"
 
-    // Store mock data in repository for historical tracking
-    val weatherRecord = WeatherRecord.fromWeatherData(weatherData)
-    weatherRepository.create(weatherRecord).map(_ => Right(weatherData))
-      .recover { case e: Exception =>
-        Right(weatherData) // Still return data even if DB storage fails
+    ws.url(url)
+      .addQueryStringParameters(
+        "q" -> city,
+        "appid" -> apiKey,
+        "units" -> "metric"
+      )
+      .get()
+      .flatMap { response =>
+        response.status match {
+          case 200 =>
+            try {
+              val json = Json.parse(response.body)  // Fixed: use Json.parse
+              val cityName = (json \ "name").as[String]
+              val country = (json \ "sys" \ "country").as[String]
+
+              // Parse temperature data
+              val mainData = (json \ "main")
+              val temperature = Temperature(
+                current = (mainData \ "temp").as[Double],
+                min = (mainData \ "temp_min").as[Double],
+                max = (mainData \ "temp_max").as[Double],
+                feelsLike = (mainData \ "feels_like").as[Double]
+              )
+
+              // Parse weather conditions
+              val weatherData = (json \ "weather").as[JsArray].value.map { condition =>
+                WeatherCondition(
+                  main = (condition \ "main").as[String],
+                  description = (condition \ "description").as[String],
+                  icon = (condition \ "icon").as[String]
+                )
+              }.toSeq
+
+              // Parse wind data
+              val windData = (json \ "wind")
+              val wind = Wind(
+                speed = (windData \ "speed").as[Double],
+                degrees = (windData \ "deg").as[Int]
+              )
+
+              // Parse humidity and pressure
+              val humidity = (mainData \ "humidity").as[Int]
+              val pressure = (mainData \ "pressure").as[Int]
+
+              // Create weather data object
+              val weatherDataObj = WeatherData(
+                city = cityName,
+                country = country,
+                temperature = temperature,
+                weather = weatherData,
+                wind = wind,
+                humidity = humidity,
+                pressure = pressure,
+                timestamp = Instant.now().getEpochSecond
+              )
+
+              // Store the weather data in the database
+              val weatherRecord = WeatherRecord.fromWeatherData(weatherDataObj)
+              weatherRepository.create(weatherRecord).map(_ => Right(weatherDataObj))
+                .recover { case ex =>
+                  // If database save fails, still return the weather data
+                  Right(weatherDataObj)
+                }
+            } catch {
+              case e: Exception =>
+                Future.successful(Left(s"Failed to parse weather data: ${e.getMessage}"))
+            }
+          case 404 =>
+            Future.successful(Left(s"City '$city' not found"))
+          case status =>
+            Future.successful(Left(s"Weather API error: ${response.status} ${response.statusText}"))
+        }
+      }
+      .recover {
+        case e: Exception => Left(s"Failed to get weather data: ${e.getMessage}")
       }
   }
 
   def getHistoricalData(city: String, limit: Int = 10): Future[Seq[WeatherRecord]] = {
-    // Try to get real historical data from the repository
     weatherRepository.list(city, limit)
-      .recover { case e: Exception =>
-        // If repository access fails, return empty list
-        Seq.empty
+  }
+
+  def getForecast(city: String): Future[Either[String, Seq[WeatherData]]] = {
+    val url = s"$apiUrl/forecast"
+
+    ws.url(url)
+      .addQueryStringParameters(
+        "q" -> city,
+        "appid" -> apiKey,
+        "units" -> "metric",
+        "cnt" -> "40"  // 5 days forecast, 3-hour step (8 per day)
+      )
+      .get()
+      .map { response =>
+        response.status match {
+          case 200 =>
+            try {
+              val json = Json.parse(response.body)  // Fixed: use Json.parse
+              val cityData = (json \ "city")
+              val cityName = (cityData \ "name").as[String]
+              val country = (cityData \ "country").as[String]
+
+              val forecastList = (json \ "list").as[JsArray].value.map { item =>
+                val dt = (item \ "dt").as[Long]
+                val mainData = (item \ "main")
+                val weatherData = (item \ "weather").as[JsArray].value.map { condition =>
+                  WeatherCondition(
+                    main = (condition \ "main").as[String],
+                    description = (condition \ "description").as[String],
+                    icon = (condition \ "icon").as[String]
+                  )
+                }.toSeq
+
+                val windData = (item \ "wind")
+
+                WeatherData(
+                  city = cityName,
+                  country = country,
+                  temperature = Temperature(
+                    current = (mainData \ "temp").as[Double],
+                    min = (mainData \ "temp_min").as[Double],
+                    max = (mainData \ "temp_max").as[Double],
+                    feelsLike = (mainData \ "feels_like").as[Double]
+                  ),
+                  weather = weatherData,
+                  wind = Wind(
+                    speed = (windData \ "speed").as[Double],
+                    degrees = (windData \ "deg").as[Int]
+                  ),
+                  humidity = (mainData \ "humidity").as[Int],
+                  pressure = (mainData \ "pressure").as[Int],
+                  timestamp = dt
+                )
+              }.toSeq
+
+              // Group forecast data by day to get daily forecast
+              val dailyForecast = forecastList
+                .groupBy(data => {
+                  val instant = Instant.ofEpochSecond(data.timestamp)
+                  instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate
+                })
+                .map { case (_, forecasts) =>
+                  // Use the middle of the day forecast as representative
+                  val midDayForecast = forecasts.sortBy(_.timestamp).drop(forecasts.size / 2).head
+                  midDayForecast
+                }
+                .toSeq
+                .sortBy(_.timestamp)
+                .take(10)  // Limit to 10 days
+
+              Right(dailyForecast)
+            } catch {
+              case e: Exception =>
+                Left(s"Failed to parse forecast data: ${e.getMessage}")
+            }
+          case 404 =>
+            Left(s"City '$city' not found")
+          case status =>
+            Left(s"Weather API error: ${response.status} ${response.statusText}")
+        }
+      }
+      .recover {
+        case e: Exception => Left(s"Failed to get forecast data: ${e.getMessage}")
       }
   }
 }
