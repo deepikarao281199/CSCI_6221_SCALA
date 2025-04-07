@@ -50,6 +50,11 @@ class WeatherController @Inject()(
       Ok(Json.toJson(data))
     }
   }
+  def getCitySuggestions(q: String): Action[AnyContent] = Action.async {
+    weatherService.fetchCitySuggestions(q).map { suggestions =>
+      Ok(suggestions)
+    }
+  }
 
   def getForecast(city: String): Action[AnyContent] = Action.async {
     weatherService.getForecast(city).map {

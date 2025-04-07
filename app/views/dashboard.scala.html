@@ -51,6 +51,7 @@ formatter.format(instant)
         </div>
     </div>
 </div>
+
 <div class="row">
     <div class="col-md-7 mb-4">
         <div class="weather-card">
@@ -125,9 +126,10 @@ formatter.format(instant)
             <div class="card-body">
                 <form action="@routes.WeatherController.dashboard()" method="GET">
                     <div class="input-group mb-3">
-                        <input type="text" class="form-control" placeholder="Enter city name" name="city">
+                        <input type="text" class="form-control" placeholder="Enter city name" name="city" id="other-city">
                         <button class="btn btn-primary" type="submit">Search</button>
                     </div>
+                    <div id="other-suggestions" class="list-group mt-2"></div> <!-- For displaying city suggestions -->
                 </form>
 
                 <h5 class="mt-4 mb-3">Popular Cities:</h5>
@@ -141,6 +143,42 @@ formatter.format(instant)
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('other-city').addEventListener('keyup', function() {
+  var cityName = this.value;
+  if (cityName.length >= 3) { // Fetch suggestions only after 3 characters are typed
+    fetch(`/api/city-suggestions?q=${cityName}`)
+      .then(response => response.json())
+      .then(suggestions => {
+        var suggestionList = document.getElementById('other-suggestions');
+        suggestionList.innerHTML = ''; // Clear previous suggestions
+        suggestions.forEach(function(city) {
+          // Create the full location string
+          const fullLocation = `${city.name}, ${city.state || ''}, ${city.country}`.replace(/, ,/g, ',');
+
+          var listItem = document.createElement('div');
+          listItem.classList.add('list-group-item');
+          listItem.textContent = fullLocation; // Display the full location
+          listItem.style.cursor = 'pointer'; // Make it look clickable
+          listItem.addEventListener('click', function() {
+            document.getElementById('other-city').value = fullLocation; // Set full location in the input field
+            suggestionList.innerHTML = ''; // Clear suggestions
+
+            // Add redirection to dashboard with the full location
+            window.location.href = `/dashboard?city=${encodeURIComponent(fullLocation)}`;
+          });
+          suggestionList.appendChild(listItem);
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching city suggestions:', error);
+      });
+  } else {
+    document.getElementById('other-suggestions').innerHTML = ''; // Fixed element ID
+  }
+});
+</script>
 
 <!-- 10-Day Forecast -->
 <div class="chart-container">
@@ -159,8 +197,7 @@ formatter.format(instant)
                     }</div>
                 <div class="forecast-icon">
                     @for(condition <- dayForecast.weather.headOption) {
-                    <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png"
-                         alt="@condition.description">
+                    <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png" alt="@condition.description">
                     }
                 </div>
                 <div class="forecast-temp">
@@ -209,13 +246,13 @@ formatter.format(instant)
                 frameborder="0"
                 style="border:0"
                 src="@{
-                // Get coordinates from the API response if available
-                // Note: This assumes the WeatherData model includes lat/lon fields
-                // You may need to modify your WeatherData model to include these
+        // Get coordinates from the API response if available
+        // Note: This assumes the WeatherData model includes lat/lon fields
+        // You may need to modify your WeatherData model to include these
 
-                // First try our predefined coordinates
-                val predefinedCoordinates = Map(
-                    "New York" -> "40.7128,-74.0060",
+        // First try our predefined coordinates
+        val predefinedCoordinates = Map(
+          "New York" -> "40.7128,-74.0060",
         "London" -> "51.5074,-0.1278",
         "Tokyo" -> "35.6762,139.6503",
         "Sydney" -> "-33.8688,151.2093",
@@ -267,5 +304,6 @@ formatter.format(instant)
         allowfullscreen>
         </iframe>
     </div>
+</div>
 </div>
 }

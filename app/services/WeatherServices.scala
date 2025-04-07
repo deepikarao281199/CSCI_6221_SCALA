@@ -99,6 +99,33 @@ class WeatherServices @Inject()(
         case e: Exception => Left(s"Failed to get weather data: ${e.getMessage}")
       }
   }
+  def fetchCitySuggestions(query: String): Future[JsValue] = {
+    val url = s"http://api.openweathermap.org/geo/1.0/direct?q=$query&limit=5&appid=$apiKey"
+
+    ws.url(url).get().map { response =>
+      val rawJson = response.json.as[JsArray]
+
+      val simplifiedJson = JsArray(
+        rawJson.value.map { city =>
+          val name = (city \ "name").asOpt[String].getOrElse("")
+          val state = (city \ "state").asOpt[String].getOrElse("")
+          val country = (city \ "country").asOpt[String].getOrElse("")
+          val lat = (city \ "lat").asOpt[Double].getOrElse(0.0)
+          val lon = (city \ "lon").asOpt[Double].getOrElse(0.0)
+
+          Json.obj(
+            "name" -> JsString(name),
+            "state" -> JsString(state),
+            "country" -> JsString(country),
+            "lat" -> JsNumber(lat),
+            "lon" -> JsNumber(lon)
+          )
+        }
+      )
+
+      simplifiedJson
+    }
+  }
 
   def getHistoricalData(city: String, limit: Int = 10): Future[Seq[WeatherRecord]] = {
     weatherRepository.list(city, limit)
