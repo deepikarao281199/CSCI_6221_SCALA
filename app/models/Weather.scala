@@ -10,6 +10,8 @@ case class WeatherData(
                         humidity: Int,
                         pressure: Int,
                         timestamp: Long,
+                        lat:String,
+                        lon:String,
 
 
                       )
