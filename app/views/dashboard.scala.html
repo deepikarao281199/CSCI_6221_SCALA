@@ -11,7 +11,7 @@ formatter.format(instant)
 }
 
 @main(s"Weather for ${weather.city}") {
-<!-- Weather Alerts Panel -->
+<!-- Weather Alert Panel -->
 <div class="alerts-container mb-4">
     <div class="alert-panel @if(scala.util.Random.nextInt(3) == 0) {alert-warning} else if(scala.util.Random.nextInt(3) == 1) {alert-watch} else {alert-advisory}">
         <div class="alert-header" onclick="toggleAlert(this)">
