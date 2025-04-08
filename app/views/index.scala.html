@@ -10,13 +10,14 @@
 
         <div class="card shadow-lg">
             <div class="card-body p-5">
-                <form action="@routes.WeatherController.dashboard()" method="GET">
+                <form action="@routes.WeatherController.dashboard()" method="GET" role="search" aria-label="City Weather Search">
                     <div class="input-group input-group-lg search-container mx-auto" style="max-width: 600px;">
-                        <input type="text" class="form-control" placeholder="Enter city name..." name="city" required>
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-search me-2"></i> Get Weather
+                        <input type="text" class="form-control" placeholder="Enter city name..." name="city" id="center-city" required aria-label="City name">
+                        <button class="btn btn-primary" type="submit" aria-label="Search weather">
+                            <i class="fas fa-search me-2" aria-hidden="true"></i> Get Weather
                         </button>
                     </div>
+                    <div id="center-suggestions" class="list-group mt-2"></div> <!-- For displaying city suggestions -->
                 </form>
             </div>
         </div>
@@ -24,20 +25,47 @@
         <div class="mt-5">
             <h5 class="mb-3">Popular Cities:</h5>
             <div class="d-flex justify-content-center flex-wrap">
-                <a href="@routes.WeatherController.dashboard("London")" class="city-btn m-2">
+                <a href="@routes.WeatherController.dashboard("London")" class="city-btn m-2" aria-label="Weather in London">
                 <i class="fas fa-map-marker-alt me-2"></i>London
                 </a>
-                <a href="@routes.WeatherController.dashboard("New York")" class="city-btn m-2">
+                <a href="@routes.WeatherController.dashboard("New York")" class="city-btn m-2" aria-label="Weather in New York">
                 <i class="fas fa-map-marker-alt me-2"></i>New York
                 </a>
-                <a href="@routes.WeatherController.dashboard("Tokyo")" class="city-btn m-2">
+                <a href="@routes.WeatherController.dashboard("Tokyo")" class="city-btn m-2" aria-label="Weather in Tokyo">
                 <i class="fas fa-map-marker-alt me-2"></i>Tokyo
                 </a>
-                <a href="@routes.WeatherController.dashboard("Sydney")" class="city-btn m-2">
+                <a href="@routes.WeatherController.dashboard("Sydney")" class="city-btn m-2" aria-label="Weather in Sydney">
                 <i class="fas fa-map-marker-alt me-2"></i>Sydney
                 </a>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('center-city').addEventListener('input', function() {
+    let query = this.value.trim();
+    if (query.length >= 3) {  // Only trigger suggestions if query length is >= 3 characters
+       fetch(`/api/city-suggestions?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                let suggestions = document.getElementById('center-suggestions');
+                suggestions.innerHTML = '';  // Clear previous suggestions
+                data.forEach(item => {
+                    // Create the full location string
+                    const fullLocation = `${item.name}, ${item.state || ''}, ${item.country}`.replace(/, ,/g, ',');
+
+                    let suggestion = document.createElement('a');
+                    suggestion.classList.add('list-group-item', 'list-group-item-action');
+                    suggestion.href = `/dashboard?city=${encodeURIComponent(fullLocation)}`;
+                    suggestion.textContent = fullLocation;
+                    suggestions.appendChild(suggestion);
+                });
+            })
+            .catch(error => console.log(error));
+    } else {
+        document.getElementById('center-suggestions').innerHTML = '';  // Fixed the ID to match
+    }
+});
+</script>
 }

@@ -1,9 +1,7 @@
-@(weather: models.WeatherData, historicalData: Seq[models.WeatherRecord], forecast: Seq[models.WeatherData] = Seq.empty, clothingSuggestion: String)
+@(weather: models.WeatherData, historicalData: Seq[models.WeatherRecord], forecast: Seq[models.WeatherData] = Seq.empty)
 
 @import java.time.{Instant, ZoneId}
 @import java.time.format.DateTimeFormatter
-@import play.api.libs.json.Json
-
 
 @formatTime(timestamp: Long) = @{
 val instant = Instant.ofEpochSecond(timestamp)
@@ -53,7 +51,6 @@ formatter.format(instant)
         </div>
     </div>
 </div>
-
 <div class="row">
     <div class="col-md-7 mb-4">
         <div class="weather-card">
@@ -143,72 +140,6 @@ formatter.format(instant)
             </div>
         </div>
     </div>
-
-    <div class="col-md-12 mb-4">
-        <div class="weather-card">
-            <div class="card-header">
-                <h3 class="mb-0">
-                    <i class="fas fa-tshirt me-2"></i>
-                    Clothing Suggestions
-                </h3>
-            </div>
-            <div class="card-body" style="background-color: white;">
-                    <!-- Clothing Suggestion for the current weather -->
-                <div class="d-flex align-items-center">
-                        <!-- Add icon based on weather suggestion -->
-                    @if(clothingSuggestion.contains("rain")) {
-                        <i class="fas fa-umbrella me-2" style="color: #2196f3;"></i>
-                    } else if(clothingSuggestion.contains("hot")) {
-                    <i class="fas fa-sun me-2" style="color: #ff9800;"></i>
-                    } else if(clothingSuggestion.contains("cold")) {
-                    <i class="fas fa-scarf me-2" style="color: #607d8b;"></i>
-                    } else {
-                    <i class="fas fa-tshirt me-2" style="color: #4caf50;"></i>
-                    }
-                    <h4>@clothingSuggestion</h4> <!-- Display clothing suggestion -->
-                </div>
-
-                <div class="mt-3">
-                        <!-- Example of clickable suggestion for further details -->
-                    <a href="https://dailydressme.com/" class="btn btn-primary">Learn More About Clothing</a>
-                </div>
-
-                    <!-- 10-Day Forecast Table for Clothing Suggestion -->
-                <div class="mt-4">
-                    <h4>Clothing Suggestions for the Coming Days</h4>
-                    <div class="calendar-grid">
-                            <!-- Loop through the forecast data to create a horizontal layout with calendar-like grid -->
-                        @for(dayForecast <- forecast) {
-                            <div class="calendar-day">
-                                <div class="calendar-cell">
-                                    <h5>@{
-                                        val instant = Instant.ofEpochSecond(dayForecast.timestamp)
-                                        val formatter = DateTimeFormatter.ofPattern("EEE")
-                                        .withZone(ZoneId.systemDefault())
-                                        formatter.format(instant)
-                                    }</h5>
-                                    <p><strong>@dayForecast.temperature.current°C</strong></p>
-                                    <p>@dayForecast.weather.headOption.map(_.main).getOrElse("N/A")</p>
-                                    <p>
-                                        @if(dayForecast.temperature.current < 5) {
-                                            Sweater, coat, gloves, scarf
-                                        } else if(dayForecast.temperature.current >= 5 && dayForecast.temperature.current <= 20) {
-                                    Light jacket, full sleeves
-                                    } else {
-                                    Light colors, breathable fabric, sunglasses, cap
-                                    }
-                                    </p>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 </div>
 
 <!-- 10-Day Forecast -->

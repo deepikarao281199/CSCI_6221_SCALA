@@ -66,6 +66,10 @@ class WeatherServices @Inject()(
               val humidity = (mainData \ "humidity").as[Int]
               val pressure = (mainData \ "pressure").as[Int]
 
+              val coordinates = json \ "coord"
+              val latitude = (coordinates \ "lat").as[Double].toString
+              val longitude = (coordinates \ "lon").as[Double].toString
+
               // Create weather data object
               val weatherDataObj = WeatherData(
                 city = cityName,
@@ -75,7 +79,9 @@ class WeatherServices @Inject()(
                 wind = wind,
                 humidity = humidity,
                 pressure = pressure,
-                timestamp = Instant.now().getEpochSecond
+                timestamp = Instant.now().getEpochSecond,
+                lat=latitude,
+                lon=longitude
               )
 
               // Store the weather data in the database
@@ -98,6 +104,33 @@ class WeatherServices @Inject()(
       .recover {
         case e: Exception => Left(s"Failed to get weather data: ${e.getMessage}")
       }
+  }
+  def fetchCitySuggestions(query: String): Future[JsValue] = {
+    val url = s"http://api.openweathermap.org/geo/1.0/direct?q=$query&limit=5&appid=$apiKey"
+
+    ws.url(url).get().map { response =>
+      val rawJson = response.json.as[JsArray]
+
+      val simplifiedJson = JsArray(
+        rawJson.value.map { city =>
+          val name = (city \ "name").asOpt[String].getOrElse("")
+          val state = (city \ "state").asOpt[String].getOrElse("")
+          val country = (city \ "country").asOpt[String].getOrElse("")
+          val lat = (city \ "lat").asOpt[Double].getOrElse(0.0)
+          val lon = (city \ "lon").asOpt[Double].getOrElse(0.0)
+
+          Json.obj(
+            "name" -> JsString(name),
+            "state" -> JsString(state),
+            "country" -> JsString(country),
+            "lat" -> JsNumber(lat),
+            "lon" -> JsNumber(lon)
+          )
+        }
+      )
+
+      simplifiedJson
+    }
   }
 
   def getHistoricalData(city: String, limit: Int = 10): Future[Seq[WeatherRecord]] = {
@@ -136,6 +169,9 @@ class WeatherServices @Inject()(
                 }.toSeq
 
                 val windData = (item \ "wind")
+                val coord = (cityData \ "coord")
+                val lat = (coord \ "lat").as[Double].toString
+                val lon = (coord \ "lon").as[Double].toString
 
                 WeatherData(
                   city = cityName,
@@ -153,7 +189,9 @@ class WeatherServices @Inject()(
                   ),
                   humidity = (mainData \ "humidity").as[Int],
                   pressure = (mainData \ "pressure").as[Int],
-                  timestamp = dt
+                  timestamp = dt,
+                  lat=lat,
+                  lon=lon,
                 )
               }.toSeq
 
