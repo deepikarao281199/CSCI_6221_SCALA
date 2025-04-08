@@ -306,3 +306,110 @@ footer {
     font-weight: normal;
     margin-left: 5px;
 }
+
+/* Styling for the "Clothing Suggestions" header */
+.weather-card .card-header {
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); /* Gradient similar to previous header */
+    color: white;
+    border-bottom: none;
+    padding: 20px;
+    border-radius: 10px 10px 0 0; /* Rounded top corners */
+}
+
+/* Card body styling for clothing suggestion */
+.weather-card .card-body {
+    padding: 25px;
+    background-color: white;
+    border-radius: 0 0 10px 10px; /* Rounded bottom corners */
+}
+
+/* Styling for the clothing suggestion icons */
+.weather-card .fas.fa-umbrella,
+.weather-card .fas.fa-sun,
+.weather-card .fas.fa-scarf,
+.weather-card .fas.fa-tshirt {
+    font-size: 2rem;
+    margin-right: 10px;
+}
+
+/* Styling for the 10-day forecast calendar grid */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7 columns for each day of the week */
+    gap: 10px;
+    background-color: #f0f0f0;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+}
+
+/* Styling for each day cell inside the calendar */
+.calendar-day {
+    background-color: #87ceeb; /* Sky Blue */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* Hover effect for the calendar day cells */
+.calendar-day:hover {
+    background-color: #87ceeb; /* Maintain sky-blue color on hover */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.calendar-day h5 {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.calendar-day p {
+    font-size: 1em;
+    color: #666;
+    margin: 5px 0;
+}
+
+/* Additional styles for the clothing suggestion section */
+
+
+.mt-3 a.btn-primary {
+    background-color: #3a7bd5; /* Consistent button color with the header */
+    border-color: #3a7bd5;
+    transition: background-color 0.3s ease;
+}
+
+.mt-3 a.btn-primary:hover {
+    background-color: #4facfe; /* Slightly darker shade of the gradient */
+    border-color: #4facfe;
+}
+
+/* Styling for buttons (Yes/No) */
+.mt-3 .btn-success, .mt-3 .btn-danger {
+    font-weight: bold;
+}
+
+.mt-3 .btn-success:hover {
+    background-color: #45a049; /* Greenish hover effect */
+}
+
+.mt-3 .btn-danger:hover {
+    background-color: #c82333; /* Red hover effect */
+}
+
+/* Additional styles for the 10-Day Forecast and Weather Map */
+.chart-container {
+    display: grid;
+    background-color: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    margin-top: 30px;
+    max-width: 1300px; /* Set the same max-width */
+    margin-left: auto;
+    margin-right: auto;
+}
+

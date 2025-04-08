@@ -25,13 +25,15 @@ class WeatherController @Inject()(
         // Get both historical data and forecast
         val historicalDataFuture = weatherService.getHistoricalData(cityName)
         val forecastFuture = weatherService.getForecast(cityName)
+        val clothingSuggestion = getClothingSuggestion(weatherData.temperature.current)  // Get clothing suggestion
 
         for {
           historicalData <- historicalDataFuture
           forecastResult <- forecastFuture
         } yield {
           val forecast = forecastResult.getOrElse(Seq.empty)
-          Ok(views.html.dashboard(weatherData, historicalData, forecast))
+          // Pass the clothing suggestion as part of the parameters
+          Ok(views.html.dashboard(weatherData, historicalData, forecast, clothingSuggestion))  // Pass clothing suggestion here
         }
       case Left(error) =>
         Future.successful(NotFound(views.html.error("Weather Error", error)))
@@ -55,6 +57,19 @@ class WeatherController @Inject()(
     weatherService.getForecast(city).map {
       case Right(forecastData) => Ok(Json.toJson(forecastData))
       case Left(error) => NotFound(Json.obj("error" -> error))
+    }
+  }
+
+  // Method to get clothing suggestion based on the temperature
+  def getClothingSuggestion(temperature: Double): String = {
+    if (temperature < 5) {
+      "Sweater, coat, gloves, scarf"
+    } else if (temperature >= 5 && temperature <= 20) {
+      "Light jacket, full sleeves"
+    } else if (temperature > 20) {
+      "Light colors, breathable fabric, sunglasses, cap"
+    } else {
+      "No suggestion available"
     }
   }
 }
