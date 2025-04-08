@@ -11,6 +11,12 @@ GET     /dashboard                  controllers.WeatherController.dashboard(city
 GET     /api/weather/:city          controllers.WeatherController.getWeather(city: String)
 GET     /api/weather/:city/history  controllers.WeatherController.getHistoricalData(city: String, limit: Int ?= 10)
 GET     /api/city-suggestions        controllers.WeatherController.getCitySuggestions(q: String)
+
+GET     /searchStations/:query          controllers.MetroController.searchStations(query: String)
+GET     /trainTimings/:stationCode      controllers.MetroController.getTrainTimings(stationCode: String)
+
+
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 

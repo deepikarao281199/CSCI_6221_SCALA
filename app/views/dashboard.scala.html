@@ -121,6 +121,48 @@ formatter.format(instant)
             </div>
         </div>
     </div>
+    <!-- Search Another City Section -->
+    <!-- Train Arrivals Section -->
+    <style>
+        .suggestion-wrapper {
+          position: relative;
+        }
+
+        #suggestions {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          width: 100%;
+          z-index: 9999;
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          max-height: 200px;
+          overflow-y: auto;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #suggestions .list-group-item {
+          padding: 10px 15px;
+          cursor: pointer;
+          border: none;
+        }
+
+        #suggestions .list-group-item:hover {
+          background-color: #f0f8ff;
+        }
+        .weather-card {
+  overflow: visible !important; /* Allow dropdowns to go outside */
+  position: relative; /* Needed for absolute positioning of dropdowns */
+  z-index: 1;
+}
+
+.train-arrivals {
+  position: relative; /* Ensure child absolute elements are positioned correctly */
+  z-index: 2;
+}
+
+    </style>
 
     <div class="col-md-5 mb-4">
         <div class="weather-card">
@@ -133,7 +175,7 @@ formatter.format(instant)
                         <input type="text" class="form-control" placeholder="Enter city name" name="city" id="other-city">
                         <button class="btn btn-primary" type="submit">Search</button>
                     </div>
-                    <div id="other-suggestions" class="list-group mt-2"></div> <!-- For displaying city suggestions -->
+                    <div id="other-suggestions" class="list-group mt-2"></div>
                 </form>
 
                 <h5 class="mt-4 mb-3">Popular Cities:</h5>
@@ -143,12 +185,23 @@ formatter.format(instant)
                     <a href="@routes.WeatherController.dashboard("Tokyo")" class="city-btn m-1">Tokyo</a>
                     <a href="@routes.WeatherController.dashboard("Sydney")" class="city-btn m-1">Sydney</a>
                 </div>
+
+                <!-- Train Arrivals -->
+                <div class="train-arrivals mt-4 pt-3 border-top">
+                    <h5 class="mb-3"><i class="fas fa-train me-2"></i>Next Trains</h5>
+                    <div class="suggestion-wrapper input-group mb-3">
+                        <input type="text" id="stationName" class="form-control" placeholder="Enter Station Name" onkeyup="searchStations()" />
+                        <button class="btn btn-outline-secondary" onclick="getTrainTimings()">Get Arrivals</button>
+                        <div id="suggestions" class="list-group"></div>
+                    </div>
+                    <div id="trainArrivalsList" class="train-list"></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
+
+    <script>
     document.getElementById('other-city').addEventListener('keyup', function() {
   var cityName = this.value;
   if (cityName.length >= 3) { // Fetch suggestions only after 3 characters are typed
@@ -184,7 +237,52 @@ formatter.format(instant)
 });
 </script>
 
-<!-- 10-Day Forecast -->
+
+    <script>
+        let selectedStationCode = '';
+
+        function searchStations() {
+          const query = document.getElementById('stationName').value;
+          if (query.length >= 3) { // Fetch suggestions only after 3 characters are typed
+            fetch(`/searchStations/${query}`)
+              .then(response => response.json())
+              .then(data => {
+                const suggestions = data.map(station => `<li class="list-group-item" onclick="selectStation('${station.Code}')">${station.Name}</li>`).join('');
+                document.getElementById('suggestions').innerHTML = suggestions;
+              })
+              .catch(error => console.error('Error fetching stations:', error));
+          } else {
+            document.getElementById('suggestions').innerHTML = '';
+          }
+        }
+
+        function selectStation(stationCode) {
+          selectedStationCode = stationCode;
+          document.getElementById('stationName').value = stationCode; // Optionally set station name
+          document.getElementById('suggestions').innerHTML = '';
+          getTrainTimings(stationCode);
+        }
+
+        function getTrainTimings(stationCode) {
+          fetch(`/trainTimings/${stationCode}`)
+            .then(response => response.json())
+            .then(data => {
+              const timings = data.map(train => `
+                <li class="list-group-item">
+                  <h6>Train Line: ${train.Line}</h6>
+                  <p>Destination: ${train.Destination}</p>
+                  <p>Arrival in: ${train.Min} minutes</p>
+                </li>
+              `).join('');
+              document.getElementById('trainArrivalsList').innerHTML = timings;
+            })
+            .catch(error => console.error('Error fetching train timings:', error));
+        }
+    </script>
+
+
+
+    <!-- 10-Day Forecast -->
 <div class="chart-container">
     <h3><i class="fas fa-calendar-alt me-2"></i>10-Day Forecast</h3>
 
