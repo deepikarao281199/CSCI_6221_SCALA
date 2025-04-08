@@ -1,115 +1,206 @@
-@(weather: models.WeatherData, historicalData: Seq[models.WeatherRecord], forecast: Seq[models.WeatherData] = Seq.empty)
+@(weather: models.WeatherData, historicalData: Seq[models.WeatherRecord], forecast: Seq[models.WeatherData] = Seq.empty, clothingSuggestion: String)
 
 @import java.time.{Instant, ZoneId}
 @import java.time.format.DateTimeFormatter
+@import play.api.libs.json.Json
+
 
 @formatTime(timestamp: Long) = @{
-val instant = Instant.ofEpochSecond(timestamp)
-val formatter = DateTimeFormatter.ofPattern("HH:mm, dd MMM")
-.withZone(ZoneId.systemDefault())
-formatter.format(instant)
+    val instant = Instant.ofEpochSecond(timestamp)
+    val formatter = DateTimeFormatter.ofPattern("HH:mm, dd MMM")
+    .withZone(ZoneId.systemDefault())
+    formatter.format(instant)
 }
 
 @main(s"Weather for ${weather.city}") {
-<!-- Weather Alert Panel -->
-<div class="alerts-container mb-4">
-    <div class="alert-panel @if(scala.util.Random.nextInt(3) == 0) {alert-warning} else if(scala.util.Random.nextInt(3) == 1) {alert-watch} else {alert-advisory}">
-        <div class="alert-header" onclick="toggleAlert(this)">
-            <div class="alert-icon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="alert-title">
-                @{
-                val alertTypes = Seq("Heavy Rain", "Strong Wind", "Thunderstorm", "Heat Advisory", "Fog")
-                alertTypes(scala.util.Random.nextInt(alertTypes.length))
-                } Alert
-            </div>
-            <div class="alert-time">
-                Until @{
-                val hours = 1 + scala.util.Random.nextInt(12)
-                val minutes = Seq("00", "30")(scala.util.Random.nextInt(2))
-                val ampm = Seq("AM", "PM")(scala.util.Random.nextInt(2))
-                s"$hours:$minutes $ampm"
+    <!-- Weather Alerts Panel -->
+    <div class="alerts-container mb-4">
+        <div class="alert-panel @if(scala.util.Random.nextInt(3) == 0) {alert-warning} else if(scala.util.Random.nextInt(3) == 1) {alert-watch} else {alert-advisory}">
+            <div class="alert-header" onclick="toggleAlert(this)">
+                <div class="alert-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="alert-title">
+                    @{
+                        val alertTypes = Seq("Heavy Rain", "Strong Wind", "Thunderstorm", "Heat Advisory", "Fog")
+                        alertTypes(scala.util.Random.nextInt(alertTypes.length))
+                    } Alert
+                </div>
+                <div class="alert-time">
+                    Until @{
+                    val hours = 1 + scala.util.Random.nextInt(12)
+                    val minutes = Seq("00", "30")(scala.util.Random.nextInt(2))
+                    val ampm = Seq("AM", "PM")(scala.util.Random.nextInt(2))
+                    s"$hours:$minutes $ampm"
                 }
+                </div>
+                <div class="alert-toggle">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
             </div>
-            <div class="alert-toggle">
-                <i class="fas fa-chevron-down"></i>
-            </div>
-        </div>
-        <div class="alert-body" style="display: none;">
-            <p>@{
-                val descriptions = Seq(
-                "A strong thunderstorm is expected to affect the area with potential for lightning, heavy rainfall, and gusty winds.",
-                "Heavy rainfall may lead to localized flooding in low-lying areas. Exercise caution when traveling.",
-                "Heat index values are expected to reach dangerous levels. Stay hydrated and limit outdoor activities.",
-                "Dense fog is expected to reduce visibility to less than one mile. Drive with caution.",
-                "Strong winds with gusts up to 45 mph may cause damage to unsecured objects and tree limbs."
-                )
-                descriptions(scala.util.Random.nextInt(descriptions.length))
+            <div class="alert-body" style="display: none;">
+                <p>@{
+                    val descriptions = Seq(
+                        "A strong thunderstorm is expected to affect the area with potential for lightning, heavy rainfall, and gusty winds.",
+                        "Heavy rainfall may lead to localized flooding in low-lying areas. Exercise caution when traveling.",
+                        "Heat index values are expected to reach dangerous levels. Stay hydrated and limit outdoor activities.",
+                        "Dense fog is expected to reduce visibility to less than one mile. Drive with caution.",
+                        "Strong winds with gusts up to 45 mph may cause damage to unsecured objects and tree limbs."
+                    )
+                    descriptions(scala.util.Random.nextInt(descriptions.length))
                 }</p>
-            <div class="alert-source">Source: National Weather Service</div>
+                <div class="alert-source">Source: National Weather Service</div>
+            </div>
         </div>
     </div>
-</div>
-<div class="row">
-    <div class="col-md-7 mb-4">
-        <div class="weather-card">
-            <div class="card-header">
-                <h3 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>@weather.city, @weather.country</h3>
-                <small>Last updated: @formatTime(weather.timestamp)</small>
-            </div>
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-6 text-center">
+
+    <div class="row">
+        <div class="col-md-7 mb-4">
+            <div class="weather-card">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>@weather.city, @weather.country</h3>
+                    <small>Last updated: @formatTime(weather.timestamp)</small>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 text-center">
                         @for(condition <- weather.weather.headOption) {
-                        <div class="weather-icon">
-                            <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png"
-                                 alt="@condition.description">
-                        </div>
-                        <h4>@condition.main</h4>
-                        <p class="text-muted">@condition.description</p>
+                            <div class="weather-icon">
+                                <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png"
+                                alt="@condition.description">
+                            </div>
+                            <h4>@condition.main</h4>
+                            <p class="text-muted">@condition.description</p>
                         }
-                    </div>
-                    <div class="col-md-6 text-center">
-                        <div class="temperature">
-                            @weather.temperature.current°C
-                            <span class="fahrenheit">(@{Math.round(weather.temperature.current * 9/5 + 32)}°F)</span>
                         </div>
-                        <p class="feels-like">
-                            Feels like: @weather.temperature.feelsLike°C
-                            <span class="text-muted">(@{Math.round(weather.temperature.feelsLike * 9/5 + 32)}°F)</span>
-                        </p>
-                        <p>
-                            Min: @weather.temperature.min°C
-                            <span class="text-muted">(@{Math.round(weather.temperature.min * 9/5 + 32)}°F)</span> /
-                            Max: @weather.temperature.max°C
-                            <span class="text-muted">(@{Math.round(weather.temperature.max * 9/5 + 32)}°F)</span>
-                        </p>
+                        <div class="col-md-6 text-center">
+                            <div class="temperature">
+                                @weather.temperature.current°C
+                                <span class="fahrenheit">(@{Math.round(weather.temperature.current * 9/5 + 32)}°F)</span>
+                            </div>
+                            <p class="feels-like">
+                                Feels like: @weather.temperature.feelsLike°C
+                                <span class="text-muted">(@{Math.round(weather.temperature.feelsLike * 9/5 + 32)}°F)</span>
+                            </p>
+                            <p>
+                                Min: @weather.temperature.min°C
+                                <span class="text-muted">(@{Math.round(weather.temperature.min * 9/5 + 32)}°F)</span> /
+                                Max: @weather.temperature.max°C
+                                <span class="text-muted">(@{Math.round(weather.temperature.max * 9/5 + 32)}°F)</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="weather-details mt-4">
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="weather-detail-item">
+                                    <i class="fas fa-wind"></i>
+                                    <p class="title">WIND</p>
+                                    <p class="value">@weather.wind.speed m/s</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="weather-detail-item">
+                                    <i class="fas fa-tint"></i>
+                                    <p class="title">HUMIDITY</p>
+                                    <p class="value">@weather.humidity%</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="weather-detail-item">
+                                    <i class="fas fa-compress-arrows-alt"></i>
+                                    <p class="title">PRESSURE</p>
+                                    <p class="value">@weather.pressure hPa</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="weather-details mt-4">
-                    <div class="row">
-                        <div class="col-4">
-                            <div class="weather-detail-item">
-                                <i class="fas fa-wind"></i>
-                                <p class="title">WIND</p>
-                                <p class="value">@weather.wind.speed m/s</p>
-                            </div>
+        <div class="col-md-5 mb-4">
+            <div class="weather-card">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-search me-2"></i>Search Another City</h3>
+                </div>
+                <div class="card-body">
+                    <form action="@routes.WeatherController.dashboard()" method="GET">
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" placeholder="Enter city name" name="city">
+                            <button class="btn btn-primary" type="submit">Search</button>
                         </div>
-                        <div class="col-4">
-                            <div class="weather-detail-item">
-                                <i class="fas fa-tint"></i>
-                                <p class="title">HUMIDITY</p>
-                                <p class="value">@weather.humidity%</p>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="weather-detail-item">
-                                <i class="fas fa-compress-arrows-alt"></i>
-                                <p class="title">PRESSURE</p>
-                                <p class="value">@weather.pressure hPa</p>
-                            </div>
+                    </form>
+
+                    <h5 class="mt-4 mb-3">Popular Cities:</h5>
+                    <div class="d-flex flex-wrap">
+                        <a href="@routes.WeatherController.dashboard("London")" class="city-btn m-1">London</a>
+                        <a href="@routes.WeatherController.dashboard("New York")" class="city-btn m-1">New York</a>
+                        <a href="@routes.WeatherController.dashboard("Tokyo")" class="city-btn m-1">Tokyo</a>
+                        <a href="@routes.WeatherController.dashboard("Sydney")" class="city-btn m-1">Sydney</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-12 mb-4">
+            <div class="weather-card">
+                <div class="card-header">
+                    <h3 class="mb-0">
+                        <i class="fas fa-tshirt me-2"></i>
+                        Clothing Suggestions
+                    </h3>
+                </div>
+                <div class="card-body" style="background-color: white;">
+                        <!-- Clothing Suggestion for the current weather -->
+                    <div class="d-flex align-items-center">
+                            <!-- Add icon based on weather suggestion -->
+                        @if(clothingSuggestion.contains("rain")) {
+                            <i class="fas fa-umbrella me-2" style="color: #2196f3;"></i>
+                        } else if(clothingSuggestion.contains("hot")) {
+                        <i class="fas fa-sun me-2" style="color: #ff9800;"></i>
+                        } else if(clothingSuggestion.contains("cold")) {
+                        <i class="fas fa-scarf me-2" style="color: #607d8b;"></i>
+                        } else {
+                        <i class="fas fa-tshirt me-2" style="color: #4caf50;"></i>
+                        }
+                        <h4>@clothingSuggestion</h4> <!-- Display clothing suggestion -->
+                    </div>
+
+                    <div class="mt-3">
+                            <!-- Example of clickable suggestion for further details -->
+                        <a href="https://dailydressme.com/" class="btn btn-primary">Learn More About Clothing</a>
+                    </div>
+
+                        <!-- 10-Day Forecast Table for Clothing Suggestions -->
+                    <div class="mt-4">
+                        <h4>Clothing Suggestions for the Coming Days</h4>
+                        <div class="calendar-grid">
+                                <!-- Loop through the forecast data to create a horizontal layout with calendar-like grid -->
+                            @for(dayForecast <- forecast) {
+                                <div class="calendar-day">
+                                    <div class="calendar-cell">
+                                        <h5>@{
+                                            val instant = Instant.ofEpochSecond(dayForecast.timestamp)
+                                            val formatter = DateTimeFormatter.ofPattern("EEE")
+                                            .withZone(ZoneId.systemDefault())
+                                            formatter.format(instant)
+                                        }</h5>
+                                        <p><strong>@dayForecast.temperature.current°C</strong></p>
+                                        <p>@dayForecast.weather.headOption.map(_.main).getOrElse("N/A")</p>
+                                        <p>
+                                            @if(dayForecast.temperature.current < 5) {
+                                                Sweater, coat, gloves, scarf
+                                            } else if(dayForecast.temperature.current >= 5 && dayForecast.temperature.current <= 20) {
+                                        Light jacket, full sleeves
+                                        } else {
+                                        Light colors, breathable fabric, sunglasses, cap
+                                        }
+                                        </p>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -117,98 +208,76 @@ formatter.format(instant)
         </div>
     </div>
 
-    <div class="col-md-5 mb-4">
-        <div class="weather-card">
-            <div class="card-header">
-                <h3 class="mb-0"><i class="fas fa-search me-2"></i>Search Another City</h3>
-            </div>
-            <div class="card-body">
-                <form action="@routes.WeatherController.dashboard()" method="GET">
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" placeholder="Enter city name" name="city">
-                        <button class="btn btn-primary" type="submit">Search</button>
-                    </div>
-                </form>
 
-                <h5 class="mt-4 mb-3">Popular Cities:</h5>
-                <div class="d-flex flex-wrap">
-                    <a href="@routes.WeatherController.dashboard("London")" class="city-btn m-1">London</a>
-                    <a href="@routes.WeatherController.dashboard("New York")" class="city-btn m-1">New York</a>
-                    <a href="@routes.WeatherController.dashboard("Tokyo")" class="city-btn m-1">Tokyo</a>
-                    <a href="@routes.WeatherController.dashboard("Sydney")" class="city-btn m-1">Sydney</a>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
 
-<!-- 10-Day Forecast -->
-<div class="chart-container">
-    <h3><i class="fas fa-calendar-alt me-2"></i>10-Day Forecast</h3>
+        <!-- 10-Day Forecast -->
+    <div class="chart-container">
+        <h3><i class="fas fa-calendar-alt me-2"></i>10-Day Forecast</h3>
 
-    <div class="forecast-container">
-        <div class="row forecast-row">
+        <div class="forecast-container">
+            <div class="row forecast-row">
             @if(forecast.nonEmpty) {
-            @for(dayForecast <- forecast) {
-            <div class="col forecast-day">
-                <div class="forecast-date">@{
-                    val instant = Instant.ofEpochSecond(dayForecast.timestamp)
-                    val formatter = DateTimeFormatter.ofPattern("EEE\nMMM d")
-                    .withZone(ZoneId.systemDefault())
-                    formatter.format(instant)
-                    }</div>
-                <div class="forecast-icon">
-                    @for(condition <- dayForecast.weather.headOption) {
-                    <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png"
-                         alt="@condition.description">
-                    }
-                </div>
-                <div class="forecast-temp">
-                    @dayForecast.temperature.current°C
-                    <div class="small text-muted">(@{Math.round(dayForecast.temperature.current * 9/5 + 32)}°F)</div>
-                </div>
-                <div class="forecast-desc">
-                    @for(condition <- dayForecast.weather.headOption) {
-                    @condition.main
-                    }
-                </div>
-            </div>
-            }
+                @for(dayForecast <- forecast) {
+                    <div class="col forecast-day">
+                        <div class="forecast-date">@{
+                            val instant = Instant.ofEpochSecond(dayForecast.timestamp)
+                            val formatter = DateTimeFormatter.ofPattern("EEE\nMMM d")
+                            .withZone(ZoneId.systemDefault())
+                            formatter.format(instant)
+                        }</div>
+                        <div class="forecast-icon">
+                        @for(condition <- dayForecast.weather.headOption) {
+                            <img src="https://openweathermap.org/img/wn/@(condition.icon)@@2x.png"
+                            alt="@condition.description">
+                            }
+                        </div>
+                        <div class="forecast-temp">
+                            @dayForecast.temperature.current°C
+                        <div class="small text-muted">(@{Math.round(dayForecast.temperature.current * 9/5 + 32)}°F)</div>
+                        </div>
+                        <div class="forecast-desc">
+                        @for(condition <- dayForecast.weather.headOption) {
+                            @condition.main
+                        }
+                        </div>
+                    </div>
+                }
             } else {
-            @for(i <- 0 until 10) {
-            <div class="col forecast-day">
-                <div class="forecast-date">@{
-                    val instant = Instant.now().plusSeconds(i * 86400)
-                    val formatter = DateTimeFormatter.ofPattern("EEE\nMMM d")
-                    .withZone(ZoneId.systemDefault())
-                    formatter.format(instant)
-                    }</div>
-                <div class="forecast-icon">
-                    <img src="https://openweathermap.org/img/wn/01d@@2x.png" alt="Clear">
-                </div>
-                <div class="forecast-temp">
-                    @{20 + scala.util.Random.nextInt(5)}°C
-                    <div class="small text-muted">(@{Math.round((20 + scala.util.Random.nextInt(5)) * 9/5 + 32)}°F)</div>
-                </div>
-                <div class="forecast-desc">Clear</div>
+                @for(i <- 0 until 10) {
+                    <div class="col forecast-day">
+                        <div class="forecast-date">@{
+                            val instant = Instant.now().plusSeconds(i * 86400)
+                            val formatter = DateTimeFormatter.ofPattern("EEE\nMMM d")
+                            .withZone(ZoneId.systemDefault())
+                            formatter.format(instant)
+                        }</div>
+                        <div class="forecast-icon">
+                            <img src="https://openweathermap.org/img/wn/01d@@2x.png" alt="Clear">
+                        </div>
+                        <div class="forecast-temp">
+                            @{20 + scala.util.Random.nextInt(5)}°C
+                        <div class="small text-muted">(@{Math.round((20 + scala.util.Random.nextInt(5)) * 9/5 + 32)}°F)</div>
+                        </div>
+                        <div class="forecast-desc">Clear</div>
+                    </div>
+                }
+            }
             </div>
-            }
-            }
         </div>
     </div>
-</div>
 
-<!-- Weather Map -->
-<div class="chart-container mt-4">
-    <h3><i class="fas fa-map-marked-alt me-2"></i>Weather Map for @weather.city</h3>
+        <!-- Weather Map -->
+    <div class="chart-container mt-4">
+        <h3><i class="fas fa-map-marked-alt me-2"></i>Weather Map for @weather.city</h3>
 
-    <div class="map-container">
-        <iframe
-                width="100%"
-                height="400"
-                frameborder="0"
-                style="border:0"
-                src="@{
+        <div class="map-container">
+            <iframe
+            width="100%"
+            height="400"
+            frameborder="0"
+            style="border:0"
+            src="@{
                 // Get coordinates from the API response if available
                 // Note: This assumes the WeatherData model includes lat/lon fields
                 // You may need to modify your WeatherData model to include these
@@ -216,56 +285,56 @@ formatter.format(instant)
                 // First try our predefined coordinates
                 val predefinedCoordinates = Map(
                     "New York" -> "40.7128,-74.0060",
-        "London" -> "51.5074,-0.1278",
-        "Tokyo" -> "35.6762,139.6503",
-        "Sydney" -> "-33.8688,151.2093",
-        "Paris" -> "48.8566,2.3522",
-        "Berlin" -> "52.5200,13.4050",
-        "Washington" -> "38.9072,-77.0369",
-        "Moscow" -> "55.7558,37.6173",
-        "Beijing" -> "39.9042,116.4074"
-        )
+                    "London" -> "51.5074,-0.1278",
+                    "Tokyo" -> "35.6762,139.6503",
+                    "Sydney" -> "-33.8688,151.2093",
+                    "Paris" -> "48.8566,2.3522",
+                    "Berlin" -> "52.5200,13.4050",
+                    "Washington" -> "38.9072,-77.0369",
+                    "Moscow" -> "55.7558,37.6173",
+                    "Beijing" -> "39.9042,116.4074"
+                )
 
-        // Try to get coordinates from predefined map
-        val coordinateString = predefinedCoordinates.getOrElse(weather.city, "0,0")
+                // Try to get coordinates from predefined map
+                val coordinateString = predefinedCoordinates.getOrElse(weather.city, "0,0")
 
-        // Parse lat/lon
-        val (lat, lon) = if (coordinateString != "0,0") {
-        coordinateString.split(",") match {
-        case Array(lat, lon) => (lat, lon)
-        case _ => ("0", "0")
-        }
-        } else {
-        // For cities not in our database, use a generic world view centered on the region
-        // This isn't ideal but is better than showing New York every time
-        val regionCoords = weather.country match {
-        case "US" => "39.8283,-95.5795" // Center of US
-        case "GB" => "54.7023,-3.2765"  // Center of UK
-        case "JP" => "36.2048,138.2529" // Center of Japan
-        case "AU" => "-25.2744,133.7751" // Center of Australia
-        case "CA" => "56.1304,-106.3468" // Center of Canada
-        case "DE" => "51.1657,10.4515"  // Center of Germany
-        case "FR" => "46.2276,2.2137"   // Center of France
-        case "IT" => "41.8719,12.5674"  // Center of Italy
-        case "ES" => "40.4637,-3.7492"  // Center of Spain
-        case "CN" => "35.8617,104.1954" // Center of China
-        case "IN" => "20.5937,78.9629"  // Center of India
-        case "RU" => "61.5240,105.3188" // Center of Russia
-        case _ => "0,0"                 // Default to world view
-        }
-        regionCoords.split(",") match {
-        case Array(lat, lon) => (lat, lon)
-        case _ => ("0", "0")
-        }
-        }
+                // Parse lat/lon
+                val (lat, lon) = if (coordinateString != "0,0") {
+                    coordinateString.split(",") match {
+                        case Array(lat, lon) => (lat, lon)
+                        case _ => ("0", "0")
+                    }
+                } else {
+                    // For cities not in our database, use a generic world view centered on the region
+                    // This isn't ideal but is better than showing New York every time
+                    val regionCoords = weather.country match {
+                        case "US" => "39.8283,-95.5795" // Center of US
+                        case "GB" => "54.7023,-3.2765"  // Center of UK
+                        case "JP" => "36.2048,138.2529" // Center of Japan
+                        case "AU" => "-25.2744,133.7751" // Center of Australia
+                        case "CA" => "56.1304,-106.3468" // Center of Canada
+                        case "DE" => "51.1657,10.4515"  // Center of Germany
+                        case "FR" => "46.2276,2.2137"   // Center of France
+                        case "IT" => "41.8719,12.5674"  // Center of Italy
+                        case "ES" => "40.4637,-3.7492"  // Center of Spain
+                        case "CN" => "35.8617,104.1954" // Center of China
+                        case "IN" => "20.5937,78.9629"  // Center of India
+                        case "RU" => "61.5240,105.3188" // Center of Russia
+                        case _ => "0,0"                 // Default to world view
+                    }
+                    regionCoords.split(",") match {
+                        case Array(lat, lon) => (lat, lon)
+                        case _ => ("0", "0")
+                    }
+                }
 
-        // Determine zoom level - closer for city, wider for country
-        val zoomFactor = if (coordinateString != "0,0") 0.1 else 10.0
+                // Determine zoom level - closer for city, wider for country
+                val zoomFactor = if (coordinateString != "0,0") 0.1 else 10.0
 
-        s"https://www.openstreetmap.org/export/embed.html?bbox=${lon.toDouble-zoomFactor},${lat.toDouble-zoomFactor},${lon.toDouble+zoomFactor},${lat.toDouble+zoomFactor}&layer=mapnik&marker=$lat,$lon"
-        }"
-        allowfullscreen>
-        </iframe>
+                s"https://www.openstreetmap.org/export/embed.html?bbox=${lon.toDouble-zoomFactor},${lat.toDouble-zoomFactor},${lon.toDouble+zoomFactor},${lat.toDouble+zoomFactor}&layer=mapnik&marker=$lat,$lon"
+            }"
+            allowfullscreen>
+            </iframe>
+        </div>
     </div>
-</div>
 }
